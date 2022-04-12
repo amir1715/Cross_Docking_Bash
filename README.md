@@ -1,2 +1,2 @@
 # Cross_Docking_Bash
-# Cross docking of multiple receptors and ligands with Linux Ubuntu
+# Cross docking of multi receptors and ligands using Autodock Vina with Linux Ubuntu
