@@ -1,0 +1,101 @@
+#!/bin/bash
+if (( $(echo "$# < 3" | bc -l) )); then 
+  clear
+  echo USAGE:    selfdock list.txt exhaustiveness size
+  echo example:  selfdock lst.txt 8 30
+  echo all pdb files must be in the current folder
+  echo you can use hetnam_finder to prepare the input file as belllow
+  echo    "PDB     LIG   Chain Co-factor1  cofactor2"
+  echo --------------------------------
+  echo   "1BMK    SB5    -        HEM      HOH"
+  echo   "1CLU    DBG    A         -        -"
+  echo the needed packages are open babel, mgltools, vina, modeller
+  exit
+fi 
+
+while read line
+do
+   res=`echo $line|awk {'print $1'}`
+   lig=`echo $line|awk {'print $2'}`
+   re=`basename $res .pdb`
+   ch=`echo $line|awk {'print $3'}`
+   cof=`echo $line|awk {'print $4'}`
+   cof2=`echo $line|awk {'print $5'}`
+   mkdir $re
+   echo $lig
+   cat $re.pdb|grep $lig|awk '$1 ~ /HETATM/'|grep $lig>$lig.pdb
+   cat $re.pdb|grep ATOM >rec.pdb
+
+      if [ $ch = "-"  ]; then
+      echo  /###no chain is selected/###
+      cat $re.pdb|grep $lig|grep HETATM>$lig.pdb
+      fi
+
+   babel -h  -i pdb $lig.pdb -o mol2 $lig.mol2
+/home/sums3/DockFace/dockface/tools/mgltools_1.5.7/bin/pythonsh /home/sums3/DockFace/dockface/tools/mgltools_1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py -l $lig.mol2 -o $lig.pdbqt
+   echo "from modeller import *">missatom.py
+   echo "from modeller.scripts import complete_pdb">>missatom.py
+   echo "env = environ()">>missatom.py
+   echo "env.io.atom_files_directory = ['../atom_files']">>missatom.py
+   echo "env.libs.topology.read(file='\$(LIB)/top_heav.lib')">>missatom.py
+   echo "env.libs.parameters.read(file='\$(LIB)/par.lib')">>missatom.py
+   echo "mdl = complete_pdb(env, 'rec.pdb', transfer_res_num=1)">>missatom.py
+   echo "mdl.write(file='recc.pdb', model_format='PDB')">>missatom.py
+   mod9.17 missatom.py
+   /home/sums3/DockFace/dockface/tools/mgltools_1.5.7/bin/pythonsh /home/sums3/DockFace/dockface/tools/mgltools_1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_receptor4.py -v  -r recc.pdb -o $re.pdbqt -A hydrogens
+
+      if [ ! $cof = "-"  ]; then
+         echo  /###Cofactor $cof  is selected/###
+         cat $re.pdb|grep $cof|grep HETATM|cut -c 23,24,25,26,27,28,29,30|tr -d ' '|sort -u>coflist
+          while read coff
+          do
+             cat $re.pdb|grep $cof|grep HETATM|grep $coff>$cof.pdb
+             babel -h  -i pdb $cof.pdb -o mol2 $cof.mol2
+             /home/sums3/DockFace/dockface/tools/mgltools_1.5.7/bin/pythonsh /home/sums3/DockFace/dockface/tools/mgltools_1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py -l $cof.mol2 -o $cof.pdbqt
+             cat $cof.pdbqt>>$re.pdbqt
+          done<coflist
+      fi
+
+      if [ ! $cof2 = "-"  ]; then
+         echo  /###Cofactor $cof2  is selected/###
+         cat $re.pdb|grep $cof2|grep HETATM|cut -c 23,24,25,26,27,28,29,30|tr -d ' '|sort -u>coflist
+         while read coff
+         do
+           cat $re.pdb|grep $cof2|grep HETATM|grep $coff>$cof2.pdb
+           babel -h  -i pdb $cof2.pdb -o mol2 $cof2.mol2
+           /home/sums3/DockFace/dockface/tools/mgltools_1.5.7/bin/pythonsh /home/sums3/DockFace/dockface/tools/mgltools_1.5.7/MGLToolsPckgs/AutoDockTools/Utilities24/prepare_ligand4.py -l $cof2.mol2 -o $cof2.pdbqt
+           cat $cof2.pdbqt>>$re.pdbqt
+         done<coflist
+       fi
+
+   sed -i '/BRANCH/d' $re.pdbqt 
+   sed -i '/ROOT/d' $re.pdbqt 
+   sed -i '/TORSDOF/d' $re.pdbqt 
+   sed -i '/END/d' $re.pdbqt 
+   sed -i '/TER/d' $re.pdbqt 
+   sed -i '/REMARK/d' $re.pdbqt 
+
+
+   cp $re.pdbqt $re
+   cp $lig.pdbqt $re
+   lignumb=`cat $lig.pdbqt|grep ATOM|wc -l`
+   ligcent=`echo $lignumb/2|bc`
+   x=`cat $lig.pdbqt|grep ATOM|head -n $ligcent|tail -n 1|cut -c 32,33,34,35,36,37,38|tr -d ' '|tr -d ' '|tr -d '   '`
+   y=`cat $lig.pdbqt|grep ATOM|head -n $ligcent|tail -n 1|cut -c 40,40,40,40,41,42,43,44,45,46,47|tr -d ' '|tr -d ' '|tr -d '   '`
+   z=`cat $lig.pdbqt|grep ATOM|head -n $ligcent|tail -n 1|cut -c 47,48,49,50,51,52,53,54|tr -d ' '|tr -d ' '|tr -d '   '`
+   echo $x "  " $y " " $z
+   echo receptor = $re.pdbqt>./$re/conf.txt
+   echo ligand = $lig.pdbqt>>./$re/conf.txt
+   echo center_x = $x>>./$re/conf.txt
+   echo center_y = $y>>./$re/conf.txt
+   echo center_z = $z>>./$re/conf.txt
+   echo size_x = $3>>./$re/conf.txt
+   echo size_y = $3>>./$re/conf.txt
+   echo size_z = $3>>./$re/conf.txt
+   echo exhaustiveness = $2>>./$re/conf.txt
+   echo $lig$res
+   cd $re
+      sed -i 's/HETATM/ATOM  /' $lig.pdb
+      vina --config conf.txt
+   cd ..
+done<$1

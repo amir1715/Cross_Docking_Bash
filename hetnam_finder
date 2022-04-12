@@ -1,0 +1,27 @@
+#!/bin/bash
+# finds hetnames in a PDB structure
+rm -rf list.txt
+for i in *.pdb
+do
+n=`basename $i  .pdb`
+cat $i|awk '$1 =="HETATM"'|awk {'print   $4 "   "  $5'}|sort -u >liglist
+
+
+sed -i '/HOH/d' liglist
+sed -i '/MG/d' liglist
+sed -i '/MAL/d' liglist
+sed -i '/GOL/d' liglist
+sed -i '/NAG/d' liglist
+sed -i '/SO4/d' liglist
+
+
+
+
+while read line
+do
+echo $n "  " $line  -  -
+echo $n "  " $line  -  - >>list.txt
+
+
+done<liglist
+done

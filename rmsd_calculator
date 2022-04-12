@@ -1,0 +1,47 @@
+#!/bin/bash
+#calculatio of RMSD rmsd_calc vina_result origin_molecule.pdbqt
+#USAGE: rmsd_calculator pose1.pdbqt pose2.pdbqt
+
+
+i=0
+cc=1
+while read line
+do 
+x_pose[$i]=`cat $1|head -n $cc |tail -n 1|cut -c 32-38 |tr -d ' '|tr -d ' '|tr -d '   '`
+y_pose[$i]=`cat $1|head -n $cc |tail -n 1|cut -c 40-47 |tr -d ' '|tr -d ' '|tr -d '   '`
+z_pose[$i]=`cat $1|head -n $cc |tail -n 1|cut -c 47-54 |tr -d ' '|tr -d ' '|tr -d '   '`
+cc=`echo $cc+1|bc`
+i=`echo $i+1|bc`
+done<$1
+
+i=0
+cc=1
+while read line
+do
+x_mol[$i]=`cat $2|head -n $cc |tail -n 1|cut -c 32-38 |tr -d ' '|tr -d ' '|tr -d '   '`
+y_mol[$i]=`cat $2|head -n $cc |tail -n 1|cut -c 40-47 |tr -d ' '|tr -d ' '|tr -d '   '`
+z_mol[$i]=`cat $2|head -n $cc |tail -n 1|cut -c 47-54 |tr -d ' '|tr -d ' '|tr -d '   '`
+cc=`echo $cc+1|bc`
+i=`echo $i+1|bc`
+done<$2
+
+
+li=`cat $1 |wc -l`
+tedad=`echo $li-1|bc`
+i=0
+deltx=0
+delty=0
+deltz=0
+for i in `seq 0 $tedad`
+do
+xx=`echo "(${x_pose[$i]}-(${x_mol[$i]}))^2"|bc`
+yy=`echo "(${y_pose[$i]}-(${y_mol[$i]}))^2"|bc`
+zz=`echo "(${z_pose[$i]}-(${z_mol[$i]}))^2"|bc`
+deltx=`echo $xx+$deltx|bc`
+delty=`echo $yy+$delty|bc`
+deltz=`echo $zz+$deltz|bc`
+done
+tot=`echo $deltx+$delty+$deltz|bc` 
+totn=`echo "scale=4; ($tot/$li)"|bc`
+rmsd=`echo "sqrt($totn)"|bc`
+echo $rmsd

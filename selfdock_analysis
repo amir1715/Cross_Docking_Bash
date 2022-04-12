@@ -1,0 +1,15 @@
+#!/bin/bash
+while read line
+do
+res=`echo $line|awk {'print $1'}`
+lig=`echo $line|awk {'print $2'}`
+re=`basename $res .pdb`
+#echo $lig was re-docked on $res
+cd $re
+vina_pose_extractor 1 $lig*out*>res.pdbqt
+cat $lig.pdbqt|grep ATOM >ligg.pdbqt
+rms=`rmsd_calculator res.pdbqt ligg.pdbqt`
+energ=`cat $lig*out*|grep "REMARK VINA RESULT"|head -n 1|awk {'print $4'}`
+echo $lig was re_docked on $res with rmsd of $rms and energy of $energ
+cd ..
+done<$1

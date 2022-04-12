@@ -1,0 +1,74 @@
+#!/bin/bash
+echo The script should be performed in the receptor folder 
+echo how many cpus does your cluster provide?
+read cpu
+echo you selected $cpu cpus
+echo define your ligand folder path
+read liga
+cnt=1
+rm -rf cpu_lin*
+
+echo  Enter size x:
+read size_x
+echo Enter size y:
+read size_y
+echo Enter size Z:
+read size_z
+
+
+echo enter exhaustivene
+read exh
+
+for i in *.pdbqt
+do
+na=`echo $i|awk -F "." {'print $1'}`
+mkdir $na
+
+
+echo size_x = $size_x>>$na.txt
+echo size_y = $size_y>>$na.txt
+echo size_z = $size_z>>$na.txt
+echo cpu = 1 >>$na.txt
+echo exhaustiveness = $exh>>$na.txt
+cp $na.txt $na/conf.txt
+cp $liga/*.pdbqt $na
+cp $i $na
+echo $na|sed "s:\/::"   >>cpu_lin$cnt
+cnt=`echo $cnt+1|bc`
+if [ "$cnt" -gt "$cpu" ]
+then
+  cnt=1
+fi
+done
+
+
+
+
+num=`ls cpu_lin*|wc|awk {'print $1'}`
+rm -rf linux_run*
+rm -rf main_run
+for i in `seq 1 $num` 
+do
+echo \#\!\/bin\/bash>>linux_run$i
+echo while read line>>linux_run$i
+echo do>>linux_run$i
+echo cd \$line>>linux_run$i
+
+echo for i in lig*.pdbqt>>linux_run$i
+echo do>>linux_run$i
+echo vina \-\-receptor \$line.pdbqt \-\-ligand  \$i \-\-config \conf.txt \-\-log \$i.txt>>linux_run$i
+echo done>>linux_run$i
+
+#echo for i in *.dpf>>linux_run$i
+#echo do>>linux_run$i
+#echo autodock4 \-p \$i \-l \$i.dlg>>linux_run$i
+#echo done>>linux_run$i
+#echo rm \-rf \*map>>linux_run$i 
+echo cd \.\.>>linux_run$i 
+echo done\<cpu_lin$i>>linux_run$i
+chmod +rwx linux_run$i
+echo \(\.\/linux_run$i\&\)>>main_run 
+done
+chmod +rwx main_run
+nohup ./main_run
+

@@ -1,0 +1,14 @@
+#!/bin/bash
+mkdir rec
+while read line
+do
+res=`echo $line|awk {'print $1'}`
+lig=`echo $line|awk {'print $2'}`
+re=`basename $res .pdb`
+#echo $lig was re-docked on $res
+cd $re
+sed  -e '/receptor/d' -e '/ligand/d' -e '/size/d' -e '/exhaustiveness/d' conf.txt >../rec/$re.txt
+cp $re.pdbqt ../rec
+echo $re is finished
+cd ..
+done<$1

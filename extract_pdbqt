@@ -1,0 +1,59 @@
+#!/bin/bash
+if (( $(echo "$# < 1" | bc -l) )); then 
+
+rm -rf result.csv
+rm -rf lig_names.csv
+for i in */
+  do
+   echo $i
+ 
+   n=$i
+   gh=$i 
+   cd $i
+   rm -rf *out*txt
+   for j in *.txt
+     do
+      f=`grep " 1 " $j|awk {'print $2'}`
+      d=`grep " 1 " $j`
+      echo $d  $j
+      gh=$gh,$f
+      n=$n,$j
+      
+   done
+   echo $n>>../lig_names.csv
+   echo $gh >>../result.csv 
+   cd ..
+done
+fi 
+if (( $(echo "$# > 0" | bc -l) )); then 
+clear
+
+rm -rf result.csv
+rm -rf lig_names.csv
+while read line
+  do
+   k=`echo $line|awk {'print $1'}`
+   i=`basename $k .pdb`
+   echo $i
+
+   n=$i
+   gh=$i
+   cd $i
+   rm -rf *out*txt
+   for j in *.txt
+     do 
+      f=`grep " 1 " $j|awk {'print $2'}`
+      d=`grep " 1 " $j`
+      echo $d  $j
+      gh=$gh,$f
+      n=$n,$j
+      
+   done      
+   echo $n>>../lig_names.csv
+   echo $gh >>../result.csv
+   cd ..
+done<$1
+fi
+cat lig_names.csv|head -n 1 >scores.csv
+cat result.csv>>scores.csv
+
